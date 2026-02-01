@@ -23,7 +23,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(9); // Menampilkan 6 item per halaman (agar pas 2 baris x 3 kolom)
 
-  const API_URL = 'http://localhost:3001/devices';
+ const API_URL = 'https://697f39c8d1548030ab65760d.mockapi.io/api/v1/devices';
 
   const fetchDevices = async () => {
     try {
