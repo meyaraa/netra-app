@@ -4,12 +4,18 @@ import Swal from 'sweetalert2';
 import Footer from './components/Footer';
 import DeviceCard from './components/DeviceCard';
 import DeviceForm from './components/DeviceForm';
+import DeviceDetailModal from './components/DeviceDetailModal'; // 1. IMPORT MODAL BARU
+import logoNetra from './assets/img/netra.png';
 
 function App() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
+
+  // 2. STATE UNTUK MODAL DETAIL (BARU)
+  const [showDetail, setShowDetail] = useState(false);
+  const [detailItem, setDetailItem] = useState(null);
 
   // STATE FILTER
   const [filterStatus, setFilterStatus] = useState('All Device');
@@ -19,11 +25,12 @@ function App() {
   // STATE ALERT
   const [alertMessage, setAlertMessage] = useState(""); 
 
-  // --- 1. STATE PAGINATION (BARU) ---
+  // --- STATE PAGINATION ---
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(9); // Menampilkan 6 item per halaman (agar pas 2 baris x 3 kolom)
+  const [itemsPerPage] = useState(9); 
 
- const API_URL = 'https://697f39c8d1548030ab65760d.mockapi.io/api/v1/devices';
+  // const API_URL = 'https://697f39c8d1548030ab65760d.mockapi.io/api/v1/devices';
+  const API_URL = 'http://localhost:3001/devices';
 
   const fetchDevices = async () => {
     try {
@@ -48,8 +55,7 @@ function App() {
     }
   }, [alertMessage]);
 
-  // --- 2. RESET HALAMAN SAAT FILTER BERUBAH (BARU) ---
-  // Jika user mencari/filter, kembalikan ke halaman 1
+  // RESET HALAMAN SAAT FILTER BERUBAH
   useEffect(() => {
     setCurrentPage(1);
   }, [filterStatus, selectedType, searchTerm]);
@@ -65,7 +71,7 @@ function App() {
     return matchStatus && matchType && matchSearch;
   });
 
-  // --- 3. LOGIKA SLICING DATA (BARU) ---
+  // LOGIKA SLICING DATA
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentDevices = filteredDevices.slice(indexOfFirstItem, indexOfLastItem);
@@ -73,15 +79,48 @@ function App() {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+
   // HANDLER CRUD
   const handleDelete = async (id) => {
     const result = await Swal.fire({
-      title: 'Hapus perangkat?', text: "Data akan hilang permanen!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus!'
+      // 1. Teks & Icon
+      title: 'Delete Device?',
+      text: "You're going to delete this device permanently.",
+      icon: 'warning',       
+      iconColor: '#DC1D1D',  // Icon Merah
+      
+      // 2. Konfigurasi Tombol
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Delete!',
+      cancelButtonText: 'No, keep it.',
+      reverseButtons: true,  // Tombol No di kiri
+      focusCancel: true,     
+
+      // 3. Custom Styling (Tailwind)
+      buttonsStyling: false, // Matikan style bawaan
+      customClass: {
+        popup: 'rounded-[24px]',      
+        title: 'text-xl font-bold text-gray-800 mb-1',
+        htmlContainer: 'text-sm text-gray-500',         
+        actions: 'gap-3 mt-4 mb-2',            
+        
+        // Tombol Merah
+        confirmButton: 'bg-[#DC1D1D] hover:bg-[#DC1D1D] text-white font-bold py-3 px-6 rounded-xl shadow-sm transition-all transform hover:scale-105',
+        
+        // Tombol Abu-abu
+        cancelButton: 'bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded-xl transition-all hover:bg-gray-300' 
+      }
     });
+
     if (result.isConfirmed) {
-      await axios.delete(`${API_URL}/${id}`);
-      fetchDevices();
-      setAlertMessage("Data has been successfully deleted"); 
+      try {
+        await axios.delete(`${API_URL}/${id}`);
+        fetchDevices();
+        setAlertMessage("Data has been successfully deleted"); 
+      } catch (error) {
+        console.error("Error deleting:", error);
+        Swal.fire('Error', 'Gagal menghapus data', 'error');
+      }
     }
   };
 
@@ -94,9 +133,15 @@ function App() {
     setAlertMessage(message || "Your data has been successfully saved"); 
   };
 
+  // 3. FUNGSI HANDLE DETAIL (BARU)
+  const handleDetailMode = (device) => {
+    setDetailItem(device);
+    setShowDetail(true);
+  };
+
   const typesList = [
     { name: 'All', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
-    { name: 'Switch', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+    { name: 'Switch', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
     { name: 'Access Point', icon: 'M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0' },
     { name: 'Router', icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z' },
     { name: 'Server', icon: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01' },
@@ -106,11 +151,15 @@ function App() {
     <div className="min-h-screen bg-[#F3F5F9] text-slate-800 pb-20">
       
       {/* 1. HEADER BESAR "NETRA" */}
-      <div className="bg-white py-6 mb-8 border-b">
-        <h1 className="text-center text-3xl font-black tracking-wider uppercase">NETRA</h1>
+      <div className="bg-white py-4 mb-8 border-b"> {/* Padding saya kurangi sedikit jadi py-4 */}
+        <img 
+          src={logoNetra}       // Gunakan variabel import tadi
+          alt="NETRA Logo"      // Teks alternatif jika gambar gagal muat
+          className="mx-auto h-16 object-contain" // Style Tailwind
+        />
       </div>
 
-      <main className="container mx-auto px-4 max-w-5xl">
+      <main className="container mx-auto px-4 max-w-6xl">
 
         {/* 2. FILTER STATUS */}
         <div className="flex justify-center mb-8">
@@ -137,7 +186,7 @@ function App() {
             <button
               key={item.name}
               onClick={() => setSelectedType(item.name)}
-              className={`flex flex-row items-center justify-between p-4 rounded-2xl border transition-all duration-300 group
+              className={`flex flex-row items-center justify-between p-5 rounded-2xl border transition-all duration-300 group
                 ${selectedType === item.name 
                   ? 'border-indigo-600 bg-white ring-1 ring-indigo-100 shadow-glow scale-105' 
                   : 'border-transparent bg-white shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5'
@@ -171,7 +220,7 @@ function App() {
         {/* 5. LIST HEADER & ALERT & TOMBOL ADD */}
         <div className="flex gap-6 items-center mb-6 justify-between h-14">
           <div className="flex flex-col shrink-0">
-            <h2 className="text-2xl font-bold text-slate-800">List Device</h2>
+            <h2 className="text-[25px] font-bold text-slate-800">List Device</h2>
             {/* TEXT INFO PAGINATION */}
             <p className="text-sm text-gray-400 font-medium">
                Showing {filteredDevices.length > 0 ? indexOfFirstItem + 1 : 0} - {Math.min(indexOfLastItem, filteredDevices.length)} of {filteredDevices.length} Data
@@ -212,7 +261,7 @@ function App() {
         {loading ? <p className="text-center">Loading...</p> : (
           <>
             {/* TAMPILKAN DATA SESUAI HALAMAN (currentDevices) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[400px] content-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[400px] content-start">
               {currentDevices.length > 0 ? (
                 currentDevices.map((item) => (
                   <DeviceCard 
@@ -220,6 +269,7 @@ function App() {
                     device={item} 
                     onDelete={handleDelete}
                     onEdit={handleEditMode}
+                    onDetail={handleDetailMode} // 4. PASSING PROPS DETAIL
                   />
                 ))
               ) : (
@@ -229,7 +279,7 @@ function App() {
               )}
             </div>
 
-            {/* --- 6. TOMBOL PAGINATION (BARU) --- */}
+            {/* --- 6. TOMBOL PAGINATION --- */}
             {totalPages > 1 && (
               <div className="flex justify-center mt-12 gap-2">
                 {/* Tombol Previous */}
@@ -277,6 +327,14 @@ function App() {
           editData={editItem}
           onSuccess={handleSuccess} 
           onCancel={() => setShowForm(false)} 
+        />
+      )}
+
+      {/* 5. MODAL DETAIL (RENDER DISINI - BARU) */}
+      {showDetail && detailItem && (
+        <DeviceDetailModal
+          device={detailItem}
+          onClose={() => setShowDetail(false)}
         />
       )}
     </div>

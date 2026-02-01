@@ -10,7 +10,7 @@ export default {
           sans: ['Inter', 'sans-serif'], 
         },
         boxShadow: {
-          'soft': '0 0 7px rgba(0, 0, 0, 0.004)',       
+          'soft': '0 0 10px rgba(0, 0, 0, 0.010)',       
           'soft-hover': '0 0 15px rgba(0, 0, 0, 0.08)', 
           'glow': '0 0 15px rgba(79, 70, 229, 0.15)',  
         }
