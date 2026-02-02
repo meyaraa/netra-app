@@ -4,8 +4,8 @@ import Swal from 'sweetalert2';
 import Footer from './components/Footer';
 import DeviceCard from './components/DeviceCard';
 import DeviceForm from './components/DeviceForm';
-import DeviceDetailModal from './components/DeviceDetailModal'; // 1. IMPORT MODAL BARU
-import logoNetra from './assets/img/netra.png';
+import DeviceDetailModal from './components/DeviceDetailModal';
+import logoNetra from './assets/img/netra.png'; 
 
 function App() {
   const [devices, setDevices] = useState([]);
@@ -13,29 +13,30 @@ function App() {
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
 
-  // 2. STATE UNTUK MODAL DETAIL (BARU)
+  // STATE UNTUK MODAL DETAIL
   const [showDetail, setShowDetail] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
+
+  // STATE HIGHLIGHT & TIPE BADGE
+  const [highlightId, setHighlightId] = useState(null); 
+  const [highlightType, setHighlightType] = useState(null); // 'new' atau 'updated'
 
   // STATE FILTER
   const [filterStatus, setFilterStatus] = useState('All Device');
   const [selectedType, setSelectedType] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // STATE ALERT
-  const [alertMessage, setAlertMessage] = useState(""); 
-
-  // --- STATE PAGINATION ---
+  // STATE PAGINATION
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(9); 
-
-  // const API_URL = 'https://697f39c8d1548030ab65760d.mockapi.io/api/v1/devices';
   const API_URL = 'http://localhost:3001/devices';
 
   const fetchDevices = async () => {
     try {
       const response = await axios.get(API_URL);
-      setDevices(response.data);
+      // 1. UBAH SORTING JADI A-Z (Alphabetical)
+      const sortedData = response.data.sort((a, b) => a.name.localeCompare(b.name));
+      setDevices(sortedData);
       setLoading(false);
     } catch (error) {
       console.error("Gagal ambil data:", error);
@@ -45,22 +46,13 @@ function App() {
 
   useEffect(() => { fetchDevices() }, []);
 
-  // LOGIC ALERT
   useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => {
-        setAlertMessage(""); 
-      }, 3000);
-      return () => clearTimeout(timer); 
+    // Reset halaman ke 1 kalau filter berubah, KECUALI sedang ada highlight
+    if (!highlightId) {
+       setCurrentPage(1);
     }
-  }, [alertMessage]);
-
-  // RESET HALAMAN SAAT FILTER BERUBAH
-  useEffect(() => {
-    setCurrentPage(1);
   }, [filterStatus, selectedType, searchTerm]);
 
-  // LOGIKA FILTER
   const filteredDevices = devices.filter((item) => {
     let matchStatus = true;
     if (filterStatus === 'Online') matchStatus = item.status === true;
@@ -71,7 +63,6 @@ function App() {
     return matchStatus && matchType && matchSearch;
   });
 
-  // LOGIKA SLICING DATA
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentDevices = filteredDevices.slice(indexOfFirstItem, indexOfLastItem);
@@ -79,44 +70,113 @@ function App() {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+  // --- LOGIC HANDLE SUCCESS & AUTO SCROLL ---
+  const handleSuccess = async (message, savedId, isEdit) => { 
+    setShowForm(false);
+    
+    // Kita fetch ulang manual disini agar dapat data TERBARU untuk kalkulasi halaman
+    const response = await axios.get(API_URL);
+    // Sort ulang A-Z
+    const sortedData = response.data.sort((a, b) => a.name.localeCompare(b.name));
+    setDevices(sortedData);
 
-  // HANDLER CRUD
+    if (savedId) {
+        setHighlightId(savedId);
+        setHighlightType(isEdit ? 'updated' : 'new'); // Set Tipe Badge
+
+        // --- KALKULASI HALAMAN ---
+        // Cari urutan ke berapa data ini di array yang sudah di-sort
+        // Ingat: Array index mulai dari 0, jadi tambah 1
+        const indexInData = sortedData.findIndex(item => String(item.id) === String(savedId));
+        
+        if (indexInData !== -1) {
+            // Hitung dia ada di halaman berapa
+            const targetPage = Math.ceil((indexInData + 1) / itemsPerPage);
+            
+            // Pindahkan halaman ke halaman target
+            setCurrentPage(targetPage);
+
+            // --- AUTO SCROLL LOGIC ---
+            // Beri jeda sedikit agar React selesai me-render halaman baru
+            setTimeout(() => {
+                const element = document.getElementById(`device-card-${savedId}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 500); // 500ms delay
+        }
+        
+        // Hilangkan highlight setelah 5 detik
+        setTimeout(() => {
+            setHighlightId(null);
+            setHighlightType(null);
+        }, 5000);
+    }
+
+    Swal.fire({
+      title: 'Success!',
+      text: message || "Your data has been successfully saved",
+      icon: 'success',
+      iconColor: '#10B981',
+      confirmButtonText: 'Great!',
+      focusConfirm: true,
+      buttonsStyling: false,
+      customClass: {
+        popup: 'rounded-[24px]',
+        title: 'text-xl font-bold text-gray-800 mb-1',
+        htmlContainer: 'text-sm text-gray-500',         
+        actions: 'mt-4 mb-2',
+        confirmButton: 'bg-[#240046] hover:bg-[#3c096c] text-white font-bold py-3 px-6 rounded-xl shadow-sm transition-all transform hover:scale-105',
+      }
+    });
+  };
+
   const handleDelete = async (id) => {
+    // 1. ALERT KONFIRMASI (WARNA MERAH)
     const result = await Swal.fire({
-      // 1. Teks & Icon
       title: 'Delete Device?',
       text: "You're going to delete this device permanently.",
-      icon: 'warning',       
-      iconColor: '#DC1D1D',  // Icon Merah
-      
-      // 2. Konfigurasi Tombol
+      icon: 'warning',
+      iconColor: '#DC1D1D',
       showCancelButton: true,
       confirmButtonText: 'Yes, Delete!',
       cancelButtonText: 'No, keep it.',
-      reverseButtons: true,  // Tombol No di kiri
-      focusCancel: true,     
-
-      // 3. Custom Styling (Tailwind)
-      buttonsStyling: false, // Matikan style bawaan
+      reverseButtons: true,
+      focusCancel: true,
+      buttonsStyling: false,
       customClass: {
-        popup: 'rounded-[24px]',      
+        popup: 'rounded-[24px]',
         title: 'text-xl font-bold text-gray-800 mb-1',
-        htmlContainer: 'text-sm text-gray-500',         
-        actions: 'gap-3 mt-4 mb-2',            
-        
-        // Tombol Merah
+        htmlContainer: 'text-sm text-gray-500',
+        actions: 'gap-3 mt-4 mb-2',
         confirmButton: 'bg-[#DC1D1D] hover:bg-[#DC1D1D] text-white font-bold py-3 px-6 rounded-xl shadow-sm transition-all transform hover:scale-105',
-        
-        // Tombol Abu-abu
-        cancelButton: 'bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded-xl transition-all hover:bg-gray-300' 
+        cancelButton: 'bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded-xl transition-all hover:bg-gray-300'
       }
     });
 
+    // 2. JIKA USER KLIK YES
     if (result.isConfirmed) {
       try {
         await axios.delete(`${API_URL}/${id}`);
         fetchDevices();
-        setAlertMessage("Data has been successfully deleted"); 
+
+        // 3. TAMBAHKAN ALERT SUKSES DISINI (WARNA UNGU - SAMA KAYA ADD/EDIT)
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'Your device has been successfully deleted.',
+          icon: 'success',
+          iconColor: '#10B981', // Hijau
+          confirmButtonText: 'OK',
+          buttonsStyling: false,
+          customClass: {
+            popup: 'rounded-[24px]',
+            title: 'text-xl font-bold text-gray-800 mb-1',
+            htmlContainer: 'text-sm text-gray-500',
+            actions: 'mt-4 mb-2',
+            confirmButton: 'bg-[#240046] hover:bg-[#3c096c] text-white font-bold py-3 px-6 rounded-xl shadow-sm transition-all transform hover:scale-105',
+          }
+        });
+
       } catch (error) {
         console.error("Error deleting:", error);
         Swal.fire('Error', 'Gagal menghapus data', 'error');
@@ -126,18 +186,7 @@ function App() {
 
   const handleAddMode = () => { setEditItem(null); setShowForm(true); };
   const handleEditMode = (device) => { setEditItem(device); setShowForm(true); };
-  
-  const handleSuccess = (message) => { 
-    fetchDevices(); 
-    setShowForm(false);
-    setAlertMessage(message || "Your data has been successfully saved"); 
-  };
-
-  // 3. FUNGSI HANDLE DETAIL (BARU)
-  const handleDetailMode = (device) => {
-    setDetailItem(device);
-    setShowDetail(true);
-  };
+  const handleDetailMode = (device) => { setDetailItem(device); setShowDetail(true); };
 
   const typesList = [
     { name: 'All', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
@@ -150,16 +199,12 @@ function App() {
   return (
     <div className="min-h-screen bg-[#F3F5F9] text-slate-800 pb-20">
       
-      {/* 1. HEADER BESAR "NETRA" */}
-      <div className="bg-white py-4 mb-8 border-b"> {/* Padding saya kurangi sedikit jadi py-4 */}
-        <img 
-          src={logoNetra}       // Gunakan variabel import tadi
-          alt="NETRA Logo"      // Teks alternatif jika gambar gagal muat
-          className="mx-auto h-16 object-contain" // Style Tailwind
-        />
+      {/* 1. HEADER LOGO NETRA */}
+      <div className="bg-white py-4 mb-8 border-b shadow-sm">
+        <img src={logoNetra} alt="NETRA Logo" className="mx-auto h-16 object-contain hover:opacity-90 transition"/>
       </div>
 
-      <main className="container mx-auto px-4 max-w-6xl">
+      <main className="container mx-auto px-6 max-w-6xl">
 
         {/* 2. FILTER STATUS */}
         <div className="flex justify-center mb-8">
@@ -168,7 +213,7 @@ function App() {
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`px-8 py-2 rounded-full text-sm font-semibold transition-all duration-300
+                className={`px-7 py-2 rounded-full text-xs font-semibold transition-all duration-300
                   ${filterStatus === status 
                     ? 'bg-white text-slate-900 shadow-md' 
                     : 'text-gray-500 hover:text-gray-700'
@@ -181,25 +226,45 @@ function App() {
         </div>
 
         {/* 3. FILTER TYPE */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        {/* Ubah Container: Paksa grid-cols-5 di semua ukuran, gap diperkecil di HP */}
+        <div className="grid grid-cols-5 gap-2 md:gap-4 mb-6">
           {typesList.map((item) => (
             <button
               key={item.name}
               onClick={() => setSelectedType(item.name)}
-              className={`flex flex-row items-center justify-between p-5 rounded-2xl border transition-all duration-300 group
+              className={`
+                flex transition-all duration-300 group border
+                /* MOBILE (Default): Flex Column (Atas-Bawah), Padding Kecil, Center */
+                flex-col items-center justify-center p-2 rounded-xl
+                /* DESKTOP (md keatas): Flex Row (Kiri-Kanan), Padding Besar, Space Between */
+                md:flex-row md:justify-between md:p-5 md:rounded-2xl
+                
                 ${selectedType === item.name 
-                  ? 'border-indigo-600 bg-white ring-1 ring-indigo-100 shadow-glow scale-105' 
+                  ? 'border-indigo-600 bg-white ring-1 ring-indigo-100 shadow-glow scale-105 z-10' 
                   : 'border-transparent bg-white shadow-soft hover:shadow-soft-hover hover:-translate-y-0.5'
-                }`}
+                }
+              `}
             >
-              <span className={`text-sm font-bold ${selectedType === item.name ? 'text-indigo-900' : 'group-hover:text-indigo-500'}`}>
+              {/* TEKS: Kecil di HP, Normal di Desktop */}
+              <span className={`
+                text-[10px] font-bold text-center leading-tight mt-1
+                md:text-sm md:text-left md:mt-0
+                ${selectedType === item.name ? 'text-indigo-900' : 'group-hover:text-indigo-500'}
+              `}>
                 {item.name}
               </span>
-              
-              <div className={`p-2 rounded-xl transition-colors ${selectedType === item.name ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'}`}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon}></path>
-                </svg>
+
+              {/* ICON WRAPPER: Sembunyikan background abu-abu di HP biar hemat tempat, munculkan di Desktop */}
+              <div className={`
+                p-1.5 rounded-lg transition-colors
+                /* Order: Di HP icon diatas (order-first), di Desktop icon dikanan (order-last) */
+                order-first md:order-last
+                ${selectedType === item.name 
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30' 
+                  : 'bg-gray-50 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'
+                }
+              `}>
+                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon}></path></svg>
               </div>
             </button>
           ))}
@@ -208,51 +273,21 @@ function App() {
         {/* 4. SEARCH BAR */}
         <div className="relative mb-6">
           <input 
-            type="text" 
-            placeholder="Search" 
-            className="w-full py-3.5 pl-12 pr-4 rounded-full bg-white border-none outline-none text-gray-600 transition-shadow duration-300 shadow-soft focus:shadow-soft-hover focus:ring-2 focus:ring-indigo-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            type="text" placeholder="Search" className="w-full py-3.5 pl-12 pr-4 rounded-full bg-white border-none outline-none text-gray-600 transition-shadow duration-300 shadow-soft focus:shadow-soft-hover focus:ring-2 focus:ring-indigo-500"
+            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
           />
           <svg className="w-5 h-5 text-gray-400 absolute left-5 top-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
 
-        {/* 5. LIST HEADER & ALERT & TOMBOL ADD */}
+        {/* 5. LIST HEADER & TOMBOL ADD */}
         <div className="flex gap-6 items-center mb-6 justify-between h-14">
           <div className="flex flex-col shrink-0">
             <h2 className="text-[25px] font-bold text-slate-800">List Device</h2>
-            {/* TEXT INFO PAGINATION */}
             <p className="text-sm text-gray-400 font-medium">
                Showing {filteredDevices.length > 0 ? indexOfFirstItem + 1 : 0} - {Math.min(indexOfLastItem, filteredDevices.length)} of {filteredDevices.length} Data
             </p>
           </div>
-          
-          {/* ALERT */}
-          <div className="flex-1 mx-6 flex justify-center">
-            <div 
-              className={`
-                flex items-center gap-3 px-4 py-3 rounded-lg shadow-sm border w-full max-w-md
-                bg-[#EDF9F0] border-[#B8EBC5] text-[#1E7E34]
-                transition-all duration-500 ease-in-out transform
-                ${alertMessage ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 invisible'}
-              `}
-            >
-              <div className="w-6 h-6 bg-[#28A745] rounded-full flex items-center justify-center shrink-0">
-                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
-                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"></path>
-                 </svg>
-              </div>
-              <span className="font-medium text-sm truncate">
-                {alertMessage || " "} 
-              </span>
-            </div>
-          </div>
-          
-          {/* TOMBOL ADD */}
-          <button 
-            onClick={handleAddMode}
-            className="shrink-0 bg-[#240046] hover:bg-[#3c096c] text-white px-6 py-2.5 rounded-lg font-medium transition flex items-center gap-2 hover:-translate-y-0.5 h-full"
-          >
+          <button onClick={handleAddMode} className="shrink-0 bg-[#240046] hover:bg-[#3c096c] text-white px-6 py-2.5 rounded-lg font-medium transition flex items-center gap-2 hover:-translate-y-0.5 h-full shadow-lg shadow-indigo-200">
             <span>+</span> Add Device
           </button>
         </div>
@@ -260,8 +295,7 @@ function App() {
         {/* GRID DEVICES */}
         {loading ? <p className="text-center">Loading...</p> : (
           <>
-            {/* TAMPILKAN DATA SESUAI HALAMAN (currentDevices) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[400px] content-start">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 min-h-[400px] content-start">
               {currentDevices.length > 0 ? (
                 currentDevices.map((item) => (
                   <DeviceCard 
@@ -269,51 +303,24 @@ function App() {
                     device={item} 
                     onDelete={handleDelete}
                     onEdit={handleEditMode}
-                    onDetail={handleDetailMode} // 4. PASSING PROPS DETAIL
+                    onDetail={handleDetailMode}
+                    isHighlighted={String(item.id) === String(highlightId)} 
+                    highlightType={highlightType} // PASSING TIPE BADGE
                   />
                 ))
               ) : (
-                 <div className="col-span-full text-center text-gray-400 py-10 italic">
-                   No devices found.
-                 </div>
+                 <div className="col-span-full text-center text-gray-400 py-10 italic">No devices found.</div>
               )}
             </div>
 
-            {/* --- 6. TOMBOL PAGINATION --- */}
+            {/* PAGINATION */}
             {totalPages > 1 && (
               <div className="flex justify-center mt-12 gap-2">
-                {/* Tombol Previous */}
-                <button
-                  onClick={() => paginate(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-slate-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
-                >
-                  Prev
-                </button>
-
-                {/* Angka Halaman */}
+                <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-slate-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm">Prev</button>
                 {Array.from({ length: totalPages }, (_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => paginate(i + 1)}
-                    className={`w-10 h-10 rounded-lg font-bold text-sm transition shadow-sm
-                      ${currentPage === i + 1 
-                        ? 'bg-[#240046] text-white shadow-indigo-200 scale-105' 
-                        : 'bg-white border border-gray-200 text-slate-600 hover:bg-gray-50'
-                      }`}
-                  >
-                    {i + 1}
-                  </button>
+                  <button key={i + 1} onClick={() => paginate(i + 1)} className={`w-10 h-10 rounded-lg font-bold text-sm transition shadow-sm ${currentPage === i + 1 ? 'bg-[#240046] text-white shadow-indigo-200 scale-105' : 'bg-white border border-gray-200 text-slate-600 hover:bg-gray-50'}`}>{i + 1}</button>
                 ))}
-
-                {/* Tombol Next */}
-                <button
-                  onClick={() => paginate(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-slate-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
-                >
-                  Next
-                </button>
+                <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-slate-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm">Next</button>
               </div>
             )}
           </>
@@ -330,7 +337,7 @@ function App() {
         />
       )}
 
-      {/* 5. MODAL DETAIL (RENDER DISINI - BARU) */}
+      {/* MODAL DETAIL */}
       {showDetail && detailItem && (
         <DeviceDetailModal
           device={detailItem}

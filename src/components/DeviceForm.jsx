@@ -3,15 +3,14 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 
 const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
-  // 1. UPDATE STATE: Tambahkan field baru
   const [formData, setFormData] = useState({
+    id: '', // Tambahkan ID di state
     name: '',
     ip_address: '',
     type: 'Router',
     location: '',
     status: true,
     image: '',
-    // Data Baru
     brand: '',
     serial_number: '',
     mac_address: '',
@@ -24,9 +23,9 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
 
   useEffect(() => {
     if (editData) {
-      // Saat Edit, pastikan field baru terisi atau default ke string kosong jika undefined
       setFormData({
         ...editData,
+        // Pastikan field tidak undefined agar tidak error uncontrolled input
         brand: editData.brand || '',
         serial_number: editData.serial_number || '',
         mac_address: editData.mac_address || '',
@@ -35,7 +34,9 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
       });
       setPreviewImage(editData.image); 
     } else {
+      // Reset form untuk mode Add
       setFormData({
+        id: '',
         name: '',
         ip_address: '',
         type: 'Router',
@@ -57,6 +58,7 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
     
     setFormData({ ...formData, [name]: finalValue });
 
+    // Hapus error realtime saat user mengetik
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -83,49 +85,78 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
           setFormData({ ...formData, image: compressedBase64 });
           setPreviewImage(compressedBase64);
           
-          if (errors.image) {
-            setErrors({ ...errors, image: '' });
-          }
+          if (errors.image) setErrors({ ...errors, image: '' });
         };
       };
     }
   };
 
+  // 1. VALIDASI: SEMUA FIELD WAJIB DIISI
   const validateForm = () => {
     const newErrors = {};
+    
     if (!formData.image) newErrors.image = "Photo is required *";
     if (!formData.name.trim()) newErrors.name = "Device Name is required";
     if (!formData.ip_address.trim()) newErrors.ip_address = "IP Address is required";
     if (!formData.location.trim()) newErrors.location = "Location is required";
+    
+    // Validasi field baru
+    if (!formData.brand.trim()) newErrors.brand = "Brand/Model is required";
+    if (!formData.serial_number.trim()) newErrors.serial_number = "Serial Number is required";
+    if (!formData.mac_address.trim()) newErrors.mac_address = "MAC Address is required";
+    if (!formData.purchase_date) newErrors.purchase_date = "Purchase Date is required";
+    if (!formData.warranty_expiry) newErrors.warranty_expiry = "Warranty Date is required";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0; 
   };
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     try {
       const url = apiUrl || 'http://localhost:3001/devices';
-      if (editData) {
-        await axios.put(`${url}/${editData.id}`, formData);
-        onSuccess("Data has been successfully updated");
+      const { id, ...dataToSubmit } = formData; 
+
+      let savedId;
+
+      if (editData && editData.id) {
+        // === MODE EDIT ===
+        await axios.patch(`${url}/${editData.id}`, dataToSubmit);
+        savedId = editData.id;
+        onSuccess("Data has been successfully updated", savedId, true); 
       } else {
-        await axios.post(url, formData);
-        onSuccess("Data has been successfully added");
+        // === MODE ADD (PERUBAHAN DISINI) ===
+        
+        // 1. Tambahkan 'createdAt' secara manual
+        const newData = { 
+          ...dataToSubmit, 
+          createdAt: new Date().toISOString() // Simpan waktu sekarang (contoh: "2024-02-05T10:00:00.000Z")
+        };
+
+        const response = await axios.post(url, newData);
+        savedId = response.data.id;
+        
+        onSuccess("Data has been successfully added", savedId, false);
       }
     } catch (error) {
-      console.error(error);
-      Swal.fire({ icon: 'error', title: 'Oops...', text: 'Failed to save data!', });
+      // ... (error handling sama seperti sebelumnya)
+      console.error("Error:", error);
+      Swal.fire({ icon: 'error', title: 'Oops...', text: 'Failed to save data!' });
     }
   };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onCancel}></div>
+      
+      {/* 1. BACKDROP: Tambahkan 'animate-fade-in' */}
+      <div 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-fade-in" 
+        onClick={onCancel}
+      ></div>
 
-      {/* Modal Container */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all scale-100 flex flex-col">
+      {/* 2. MODAL CONTAINER: Tambahkan 'animate-popup' */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all flex flex-col animate-popup">
         
         <div className="bg-gray-50 px-6 py-3 border-b flex justify-between items-center sticky top-0 z-10">
           <h3 className="text-lg font-bold text-gray-800">
@@ -154,6 +185,19 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
             </div>
             {errors.image && <p className="text-red-500 text-xs mt-1 font-medium">{errors.image}</p>}
           </div>
+
+          {/* 2. FIELD ID DEVICE (HANYA MUNCUL SAAT EDIT & READ-ONLY) */}
+          {editData && (
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Device ID (Locked)</label>
+              <input 
+                type="text" 
+                value={formData.id} 
+                disabled // <--- BIKIN GABISA DIEDIT
+                className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg p-2 text-sm outline-none cursor-not-allowed font-mono"
+              />
+            </div>
+          )}
 
           {/* BASIC INFO */}
           <div>
@@ -194,7 +238,7 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
             </div>
           </div>
 
-          {/* === 2. BAGIAN BARU: TECHNICAL DETAILS (Grid 2 Kolom) === */}
+          {/* TECHNICAL DETAILS */}
           <div className="grid grid-cols-2 gap-3 pt-2">
              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Brand / Model</label>
@@ -202,10 +246,12 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
                   type="text" 
                   name="brand" 
                   placeholder="e.g Cisco / Mikrotik"
-                  className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" 
+                  className={`w-full border rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 
+                    ${errors.brand ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`} 
                   value={formData.brand} 
                   onChange={handleChange} 
                 />
+                {errors.brand && <p className="text-red-500 text-xs mt-0.5 ml-1">{errors.brand}</p>}
              </div>
              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Serial Number</label>
@@ -213,10 +259,12 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
                   type="text" 
                   name="serial_number" 
                   placeholder="S/N"
-                  className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500" 
+                  className={`w-full border rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 
+                    ${errors.serial_number ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`} 
                   value={formData.serial_number} 
                   onChange={handleChange} 
                 />
+                {errors.serial_number && <p className="text-red-500 text-xs mt-0.5 ml-1">{errors.serial_number}</p>}
              </div>
           </div>
 
@@ -227,10 +275,12 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
                   type="text" 
                   name="mac_address" 
                   placeholder="00:00:00:00:00:00"
-                  className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono" 
+                  className={`w-full border rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-mono 
+                    ${errors.mac_address ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`} 
                   value={formData.mac_address} 
                   onChange={handleChange} 
                 />
+                {errors.mac_address && <p className="text-red-500 text-xs mt-0.5 ml-1">{errors.mac_address}</p>}
              </div>
              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
@@ -241,31 +291,35 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
              </div>
           </div>
 
-          {/* === 3. BAGIAN BARU: DATES (Tanggal) === */}
+          {/* DATES */}
           <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-3 mt-1">
              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Purchase Date</label>
                 <input 
                   type="date" 
                   name="purchase_date" 
-                  className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-gray-600" 
+                  className={`w-full border rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-gray-600 
+                    ${errors.purchase_date ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`} 
                   value={formData.purchase_date} 
                   onChange={handleChange} 
                 />
+                {errors.purchase_date && <p className="text-red-500 text-xs mt-0.5 ml-1">{errors.purchase_date}</p>}
              </div>
              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Warranty Exp</label>
                 <input 
                   type="date" 
                   name="warranty_expiry" 
-                  className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-gray-600" 
+                  className={`w-full border rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 text-gray-600 
+                    ${errors.warranty_expiry ? 'border-red-500 focus:border-red-500' : 'border-gray-300'}`} 
                   value={formData.warranty_expiry} 
                   onChange={handleChange} 
                 />
+                {errors.warranty_expiry && <p className="text-red-500 text-xs mt-0.5 ml-1">{errors.warranty_expiry}</p>}
              </div>
           </div>
 
-          {/* LOCATION (Tetap Paling Bawah) */}
+          {/* LOCATION */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Location</label>
             <textarea 
@@ -280,12 +334,9 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
           </div>
 
           <div className="pt-2 pb-2">
-            <div className="pt-2">
-            <button type="submit" className={`w-full text-white py-3 rounded-xl font-bold transition  
-                    ${editData ? 'bg-[#D67200] hover:bg-[#E97C00] shadow-soft' : 'bg-[#240046] hover:bg-[#3c096c] shadow-soft'}`}>
-                    {editData ? 'Update Changes' : 'Save Device'}
+            <button type="submit" className={`w-full text-white py-2.5 rounded-xl font-bold text-sm transition shadow-lg ${editData ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' : 'bg-[#240046] hover:bg-[#3c096c] shadow-indigo-200'}`}>
+              {editData ? 'Update Changes' : 'Save Device'}
             </button>
-          </div>
           </div>
         </form>
       </div>

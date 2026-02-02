@@ -26,14 +26,15 @@ const DeviceDetailModal = ({ device, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+      
+      {/* 1. BACKDROP: Tambahkan 'animate-fade-in' */}
       <div 
-        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-fade-in" 
         onClick={onClose}
       ></div>
 
-      {/* Modal Content */}
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden transform transition-all scale-100 flex flex-col md:flex-row max-h-[90vh] md:max-h-none overflow-y-auto">
+      {/* 2. MODAL CONTENT: Tambahkan 'animate-popup' */}
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden transform transition-all flex flex-col md:flex-row max-h-[90vh] md:max-h-none overflow-y-auto animate-popup">
         
         {/* KOLOM KIRI: GAMBAR (35%) */}
         <div className="w-full md:w-[35%] bg-gray-100 flex items-center justify-center p-6 relative min-h-[250px]">
