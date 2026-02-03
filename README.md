@@ -41,16 +41,20 @@ Ikuti langkah-langkah berikut untuk menjalankan aplikasi ini di komputer lokal A
 ```bash
 git clone [https://github.com/meyaraa/netra-app.git](https://github.com/meyaraa/netra-app.git)
 cd netra-inventory
+```
 
-### 2. Install Node.js
+### 2. Jalankan Node.js
+Pastikan Node.js sudah terinstall, lalu jalankan:
 ```bash
 npm install
+```
 
 ### 3. Konfigurasi API
 Aplikasi ini menggunakan MockAPI. Pastikan URL API sudah terkonfigurasi di file src/App.jsx.
-// src/App.jsx
-const API_URL = '[https://6980da3c6570ee87d51088af.mockapi.io/api/v1/devices](https://6980da3c6570ee87d51088af.mockapi.io/api/v1/devices)';
-
+```bash
+const API_URL = '[https://YOUR_API_CODE.mockapi.io/api/v1/devices](https://YOUR_API_CODE.mockapi.io/api/v1/devices)';
+``` 
 ### 4. Jalankan aplikasi pada terminal
 ```bash
 npm run dev
+```
