@@ -1,16 +1,60 @@
-# React + Vite
+# NETRA - Network Inventory Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**NETRA Network Tracking** adalah aplikasi web berbasis React yang dirancang untuk mempermudah manajemen inventaris perangkat jaringan (Network Devices). Aplikasi ini memungkinkan administrator jaringan untuk memantau, mendata, dan mengelola status perangkat seperti Router, Switch, Server, dan Access Point secara real-time.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Fitur Unggulan
 
-## React Compiler
+* **CRUD Management:** Tambah, Baca, Edit, dan Hapus data perangkat dengan mudah.
+* **Real-time Monitoring:** Indikator visual status **Online/Offline** yang jelas.
+* **Smart Filtering:** Filter perangkat berdasarkan Status (All, Online, Offline) dan Tipe Device (All Device, Switch, Router, Access Point, Server).
+* **Live Search:** Pencarian perangkat berdasarkan Nama Device atau IP Address secara instan.
+* **Responsive Design:** Tampilan adaptif yang rapi di Desktop, Tablet, maupun Mobile.
+* **Image Handling:** Upload gambar perangkat dengan kompresi otomatis (Base64) dan dukungan transparansi (PNG).
+* **Interactive UI:**
+    * Notifikasi interaktif menggunakan **SweetAlert2**.
+    * Highlight animasi untuk data baru (New) dan data yang baru diedit (Updated).
+    * Pagination untuk menangani jumlah data yang banyak.
+    * Detail untuk memuat lebih banyak informasi
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Teknologi yang Digunakan
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Aplikasi ini dibangun menggunakan teknologi modern:
+
+* **Frontend:** [React.js](https://reactjs.org/) (Vite)
+* **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+* **HTTP Client:** [Axios](https://axios-http.com/)
+* **Alerts:** [SweetAlert2](https://sweetalert2.github.io/)
+* **Icons:** Heroicons / SVG
+* **Backend / Database:** [MockAPI.io](https://mockapi.io/) (Cloud JSON Database)
+
+---
+
+## Cara Menjalankan Project
+
+Ikuti langkah-langkah berikut untuk menjalankan aplikasi ini di komputer lokal Anda:
+
+### 1. Clone Repository
+```bash
+git clone [https://github.com/meyaraa/netra-app.git](https://github.com/meyaraa/netra-app.git)
+cd netra-inventory
+```
+
+### 2. Jalankan Node.js
+Pastikan Node.js sudah terinstall, lalu jalankan:
+```bash
+npm install
+```
+
+### 3. Konfigurasi API
+Aplikasi ini menggunakan MockAPI. Pastikan URL API sudah terkonfigurasi di file src/App.jsx.
+```bash
+const API_URL = '[https://YOUR_API_CODE.mockapi.io/api/v1/devices](https://YOUR_API_CODE.mockapi.io/api/v1/devices)';
+``` 
+### 4. Jalankan aplikasi pada terminal
+```bash
+npm run dev
+```
