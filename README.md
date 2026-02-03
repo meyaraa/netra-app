@@ -52,4 +52,5 @@ Aplikasi ini menggunakan MockAPI. Pastikan URL API sudah terkonfigurasi di file 
 const API_URL = '[https://6980da3c6570ee87d51088af.mockapi.io/api/v1/devices](https://6980da3c6570ee87d51088af.mockapi.io/api/v1/devices)';
 
 ### 4. Jalankan aplikasi pada terminal
-```npm run dev
+```bash
+npm run dev
