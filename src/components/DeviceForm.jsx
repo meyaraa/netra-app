@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 
 const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
   const [formData, setFormData] = useState({
-    id: '', // Tambahkan ID di state
+    id: '', 
     name: '',
     ip_address: '',
     type: 'Router',
@@ -25,7 +25,6 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
     if (editData) {
       setFormData({
         ...editData,
-        // Pastikan field tidak undefined agar tidak error uncontrolled input
         brand: editData.brand || '',
         serial_number: editData.serial_number || '',
         mac_address: editData.mac_address || '',
@@ -58,7 +57,6 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
     
     setFormData({ ...formData, [name]: finalValue });
 
-    // Hapus error realtime saat user mengetik
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -74,13 +72,25 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
         img.src = event.target.result;
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 250; 
-          const scaleSize = MAX_WIDTH / img.width;
-          canvas.width = MAX_WIDTH;
-          canvas.height = img.height * scaleSize;
+          
+          const MAX_WIDTH = 150; 
+          
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // 3. TETAP GUNAKAN PNG (Agar transparan)
+          const compressedBase64 = canvas.toDataURL('image/png'); 
           
           setFormData({ ...formData, image: compressedBase64 });
           setPreviewImage(compressedBase64);
@@ -99,8 +109,6 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
     if (!formData.name.trim()) newErrors.name = "Device Name is required";
     if (!formData.ip_address.trim()) newErrors.ip_address = "IP Address is required";
     if (!formData.location.trim()) newErrors.location = "Location is required";
-    
-    // Validasi field baru
     if (!formData.brand.trim()) newErrors.brand = "Brand/Model is required";
     if (!formData.serial_number.trim()) newErrors.serial_number = "Serial Number is required";
     if (!formData.mac_address.trim()) newErrors.mac_address = "MAC Address is required";
@@ -122,17 +130,21 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
       let savedId;
 
       if (editData && editData.id) {
-        // === MODE EDIT ===
-        await axios.patch(`${url}/${editData.id}`, dataToSubmit);
+        // Edit
+        const updatePayload = {
+            ...dataToSubmit,
+            updatedAt: new Date().toISOString()
+        };
+
+        await axios.put(`${url}/${editData.id}`, updatePayload); 
         savedId = editData.id;
         onSuccess("Data has been successfully updated", savedId, true); 
-      } else {
-        // === MODE ADD (PERUBAHAN DISINI) ===
+      }else {
+        // Add 
         
-        // 1. Tambahkan 'createdAt' secara manual
         const newData = { 
           ...dataToSubmit, 
-          createdAt: new Date().toISOString() // Simpan waktu sekarang (contoh: "2024-02-05T10:00:00.000Z")
+          createdAt: new Date().toISOString()
         };
 
         const response = await axios.post(url, newData);
@@ -141,21 +153,20 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
         onSuccess("Data has been successfully added", savedId, false);
       }
     } catch (error) {
-      // ... (error handling sama seperti sebelumnya)
       console.error("Error:", error);
       Swal.fire({ icon: 'error', title: 'Oops...', text: 'Failed to save data!' });
     }
   };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       
-      {/* 1. BACKDROP: Tambahkan 'animate-fade-in' */}
       <div 
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-fade-in" 
         onClick={onCancel}
       ></div>
 
-      {/* 2. MODAL CONTAINER: Tambahkan 'animate-popup' */}
+      {/* card Modal */}
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all flex flex-col animate-popup">
         
         <div className="bg-gray-50 px-6 py-3 border-b flex justify-between items-center sticky top-0 z-10">
@@ -167,7 +178,7 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
         
         <form onSubmit={handleSubmit} className="p-5 space-y-3">
           
-          {/* FOTO */}
+          {/* Gambar */}
           <div className="flex flex-col items-center justify-center mb-2">
             <div className={`relative w-full h-28 border-2 border-dashed rounded-xl bg-gray-50 flex flex-col items-center justify-center overflow-hidden group transition cursor-pointer
               ${errors.image ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-indigo-400'}`}>
@@ -186,20 +197,20 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
             {errors.image && <p className="text-red-500 text-xs mt-1 font-medium">{errors.image}</p>}
           </div>
 
-          {/* 2. FIELD ID DEVICE (HANYA MUNCUL SAAT EDIT & READ-ONLY) */}
+          {/* 2. Id Device */}
           {editData && (
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Device ID (Locked)</label>
               <input 
                 type="text" 
                 value={formData.id} 
-                disabled // <--- BIKIN GABISA DIEDIT
+                disabled 
                 className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg p-2 text-sm outline-none cursor-not-allowed font-mono"
               />
             </div>
           )}
 
-          {/* BASIC INFO */}
+          {/* Info */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Device Name</label>
             <input 
@@ -238,7 +249,7 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
             </div>
           </div>
 
-          {/* TECHNICAL DETAILS */}
+          {/* Detail */}
           <div className="grid grid-cols-2 gap-3 pt-2">
              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Brand / Model</label>
@@ -291,7 +302,7 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
              </div>
           </div>
 
-          {/* DATES */}
+          {/* Tanggal */}
           <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-3 mt-1">
              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Purchase Date</label>
@@ -319,7 +330,7 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
              </div>
           </div>
 
-          {/* LOCATION */}
+          {/* Lokasi */}
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Location</label>
             <textarea 
@@ -334,7 +345,7 @@ const DeviceForm = ({ onSuccess, onCancel, apiUrl, editData }) => {
           </div>
 
           <div className="pt-2 pb-2">
-            <button type="submit" className={`w-full text-white py-2.5 rounded-xl font-bold text-sm transition shadow-lg ${editData ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' : 'bg-[#240046] hover:bg-[#3c096c] shadow-indigo-200'}`}>
+            <button type="submit" className={`w-full text-white py-2.5 rounded-xl font-bold text-sm transition shadow-lg ${editData ? 'bg-orange-500 hover:bg-orange-600 shadow-soft' : 'bg-[#240046] hover:bg-[#3c096c] shadow-soft'}`}>
               {editData ? 'Update Changes' : 'Save Device'}
             </button>
           </div>

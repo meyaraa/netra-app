@@ -13,33 +13,34 @@ function App() {
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
 
-  // STATE UNTUK MODAL DETAIL
+  // State Modal Detail
   const [showDetail, setShowDetail] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
 
-  // STATE HIGHLIGHT & TIPE BADGE
+  // State Border Highlight 
   const [highlightId, setHighlightId] = useState(null); 
   const [highlightType, setHighlightType] = useState(null); // 'new' atau 'updated'
 
-  // STATE FILTER
-  const [filterStatus, setFilterStatus] = useState('All Device');
-  const [selectedType, setSelectedType] = useState('All');
+  // State Filter
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [selectedType, setSelectedType] = useState('All Device');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // STATE PAGINATION
+  // State Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(9); 
-  const API_URL = 'http://localhost:3001/devices';
+   //const API_URL = 'http://localhost:3001/devices';
+  const API_URL = 'https://6980da3c6570ee87d51088af.mockapi.io/api/v1/devices';
 
   const fetchDevices = async () => {
     try {
       const response = await axios.get(API_URL);
-      // 1. UBAH SORTING JADI A-Z (Alphabetical)
+      // Sort Data 
       const sortedData = response.data.sort((a, b) => a.name.localeCompare(b.name));
       setDevices(sortedData);
       setLoading(false);
     } catch (error) {
-      console.error("Gagal ambil data:", error);
+      console.error("Failed to fetch data:", error);
       setLoading(false);
     }
   };
@@ -47,7 +48,6 @@ function App() {
   useEffect(() => { fetchDevices() }, []);
 
   useEffect(() => {
-    // Reset halaman ke 1 kalau filter berubah, KECUALI sedang ada highlight
     if (!highlightId) {
        setCurrentPage(1);
     }
@@ -57,7 +57,7 @@ function App() {
     let matchStatus = true;
     if (filterStatus === 'Online') matchStatus = item.status === true;
     if (filterStatus === 'Offline') matchStatus = item.status === false;
-    const matchType = selectedType === 'All' || item.type === selectedType;
+    const matchType = selectedType === 'All Device' || item.type === selectedType;
     const matchSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                         item.ip_address.includes(searchTerm);
     return matchStatus && matchType && matchSearch;
@@ -74,7 +74,6 @@ function App() {
   const handleSuccess = async (message, savedId, isEdit) => { 
     setShowForm(false);
     
-    // Kita fetch ulang manual disini agar dapat data TERBARU untuk kalkulasi halaman
     const response = await axios.get(API_URL);
     // Sort ulang A-Z
     const sortedData = response.data.sort((a, b) => a.name.localeCompare(b.name));
@@ -84,26 +83,21 @@ function App() {
         setHighlightId(savedId);
         setHighlightType(isEdit ? 'updated' : 'new'); // Set Tipe Badge
 
-        // --- KALKULASI HALAMAN ---
-        // Cari urutan ke berapa data ini di array yang sudah di-sort
-        // Ingat: Array index mulai dari 0, jadi tambah 1
         const indexInData = sortedData.findIndex(item => String(item.id) === String(savedId));
         
         if (indexInData !== -1) {
-            // Hitung dia ada di halaman berapa
+
             const targetPage = Math.ceil((indexInData + 1) / itemsPerPage);
             
-            // Pindahkan halaman ke halaman target
             setCurrentPage(targetPage);
 
-            // --- AUTO SCROLL LOGIC ---
-            // Beri jeda sedikit agar React selesai me-render halaman baru
+            // Auto Scroll Logic
             setTimeout(() => {
                 const element = document.getElementById(`device-card-${savedId}`);
                 if (element) {
                     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-            }, 500); // 500ms delay
+            }, 500); 
         }
         
         // Hilangkan highlight setelah 5 detik
@@ -132,7 +126,7 @@ function App() {
   };
 
   const handleDelete = async (id) => {
-    // 1. ALERT KONFIRMASI (WARNA MERAH)
+    // Alert konfirm delete
     const result = await Swal.fire({
       title: 'Delete Device?',
       text: "You're going to delete this device permanently.",
@@ -154,18 +148,18 @@ function App() {
       }
     });
 
-    // 2. JIKA USER KLIK YES
+    // yes
     if (result.isConfirmed) {
       try {
         await axios.delete(`${API_URL}/${id}`);
         fetchDevices();
 
-        // 3. TAMBAHKAN ALERT SUKSES DISINI (WARNA UNGU - SAMA KAYA ADD/EDIT)
+        //Alert success delete data
         Swal.fire({
           title: 'Deleted!',
           text: 'Your device has been successfully deleted.',
           icon: 'success',
-          iconColor: '#10B981', // Hijau
+          iconColor: '#10B981', 
           confirmButtonText: 'OK',
           buttonsStyling: false,
           customClass: {
@@ -189,7 +183,7 @@ function App() {
   const handleDetailMode = (device) => { setDetailItem(device); setShowDetail(true); };
 
   const typesList = [
-    { name: 'All', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
+    { name: 'All Device', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
     { name: 'Switch', icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
     { name: 'Access Point', icon: 'M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0' },
     { name: 'Router', icon: 'M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z' },
@@ -199,17 +193,17 @@ function App() {
   return (
     <div className="min-h-screen bg-[#F3F5F9] text-slate-800 pb-20">
       
-      {/* 1. HEADER LOGO NETRA */}
+      {/* Logo Netra */}
       <div className="bg-white py-4 mb-8 border-b shadow-sm">
         <img src={logoNetra} alt="NETRA Logo" className="mx-auto h-16 object-contain hover:opacity-90 transition"/>
       </div>
 
       <main className="container mx-auto px-6 max-w-6xl">
 
-        {/* 2. FILTER STATUS */}
+        {/* Filter Status */}
         <div className="flex justify-center mb-8">
           <div className="bg-gray-200 p-1.5 rounded-full flex gap-1">
-            {['All Device', 'Online', 'Offline'].map((status) => (
+            {['All', 'Online', 'Offline'].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
@@ -225,8 +219,7 @@ function App() {
           </div>
         </div>
 
-        {/* 3. FILTER TYPE */}
-        {/* Ubah Container: Paksa grid-cols-5 di semua ukuran, gap diperkecil di HP */}
+        {/* Filter Type */}
         <div className="grid grid-cols-5 gap-2 md:gap-4 mb-6">
           {typesList.map((item) => (
             <button
@@ -254,7 +247,7 @@ function App() {
                 {item.name}
               </span>
 
-              {/* ICON WRAPPER: Sembunyikan background abu-abu di HP biar hemat tempat, munculkan di Desktop */}
+              {/* ICON WRAPPER: Sembunyikan background abu-abu di HP, munculkan di Desktop */}
               <div className={`
                 p-1.5 rounded-lg transition-colors
                 /* Order: Di HP icon diatas (order-first), di Desktop icon dikanan (order-last) */
@@ -270,7 +263,7 @@ function App() {
           ))}
         </div>
 
-        {/* 4. SEARCH BAR */}
+        {/* Search Bar */}
         <div className="relative mb-6">
           <input 
             type="text" placeholder="Search" className="w-full py-3.5 pl-12 pr-4 rounded-full bg-white border-none outline-none text-gray-600 transition-shadow duration-300 shadow-soft focus:shadow-soft-hover focus:ring-2 focus:ring-indigo-500"
@@ -279,15 +272,15 @@ function App() {
           <svg className="w-5 h-5 text-gray-400 absolute left-5 top-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
         </div>
 
-        {/* 5. LIST HEADER & TOMBOL ADD */}
+        {/* List Device, Add Device */}
         <div className="flex gap-6 items-center mb-6 justify-between h-14">
           <div className="flex flex-col shrink-0">
-            <h2 className="text-[25px] font-bold text-slate-800">List Device</h2>
+            <h2 className="text-[23px] font-bold text-slate-800">List Device</h2>
             <p className="text-sm text-gray-400 font-medium">
                Showing {filteredDevices.length > 0 ? indexOfFirstItem + 1 : 0} - {Math.min(indexOfLastItem, filteredDevices.length)} of {filteredDevices.length} Data
             </p>
           </div>
-          <button onClick={handleAddMode} className="shrink-0 bg-[#240046] hover:bg-[#3c096c] text-white px-6 py-2.5 rounded-lg font-medium transition flex items-center gap-2 hover:-translate-y-0.5 h-full shadow-lg shadow-indigo-200">
+          <button onClick={handleAddMode} className="shrink-0 bg-[#240046] hover:bg-[#3c096c] text-white px-6 py-2.5 rounded-lg font-medium text-sm transition flex items-center gap-2 hover:-translate-y-0.5 h-[85%] shadow-soft">
             <span>+</span> Add Device
           </button>
         </div>
@@ -327,6 +320,9 @@ function App() {
         )}
       </main>
 
+      {/* FOOTER */}
+      <Footer />
+
       {/* MODAL FORM */}
       {showForm && (
         <DeviceForm 
@@ -344,6 +340,8 @@ function App() {
           onClose={() => setShowDetail(false)}
         />
       )}
+
+
     </div>
   );
 }

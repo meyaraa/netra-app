@@ -14,7 +14,6 @@ const DeviceDetailModal = ({ device, onClose }) => {
     return 'bg-gray-100 text-gray-700';
   };
 
-  // Komponen kecil untuk menampilkan baris data agar rapi
   const InfoRow = ({ label, value, isMono = false }) => (
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2 rounded-lg transition">
       <span className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 sm:mb-0">{label}</span>
@@ -27,16 +26,15 @@ const DeviceDetailModal = ({ device, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       
-      {/* 1. BACKDROP: Tambahkan 'animate-fade-in' */}
-      <div 
+        <div 
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity animate-fade-in" 
-        onClick={onClose}
-      ></div>
+        onClick={onClose}>
+        </div>
 
-      {/* 2. MODAL CONTENT: Tambahkan 'animate-popup' */}
+      {/* Card Modal Detail */}
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden transform transition-all flex flex-col md:flex-row max-h-[90vh] md:max-h-none overflow-y-auto animate-popup">
         
-        {/* KOLOM KIRI: GAMBAR (35%) */}
+        {/* Gambar */}
         <div className="w-full md:w-[35%] bg-gray-100 flex items-center justify-center p-6 relative min-h-[250px]">
             <div className={`absolute top-4 left-4 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm z-10
                 ${isOnline ? 'bg-[#E2F7E8] text-[#00A76F]' : 'bg-[#FFEDED] text-[#FF5630]'}`}>
@@ -57,9 +55,8 @@ const DeviceDetailModal = ({ device, onClose }) => {
             )}
         </div>
 
-        {/* KOLOM KANAN: INFO LENGKAP (65%) */}
+        {/* Info */}
         <div className="w-full md:w-[65%] p-8 flex flex-col">
-            {/* Header */}
             <div className="flex justify-between items-start mb-4">
                 <div>
                     <div className="mb-2">
@@ -98,11 +95,10 @@ const DeviceDetailModal = ({ device, onClose }) => {
                         </div>
                      </div>
                      <InfoRow label="Location" value={device.location} />
-                     {/* Data ini belum ada di DB, akan muncul '-' */}
                      <InfoRow label="MAC Address" value={device.mac_address} isMono={true} />
                 </div>
 
-                {/* Section 2: Asset Details (Saran Data Tambahan) */}
+                {/* Section 2: Asset Details  */}
                 <h4 className="text-sm font-bold text-indigo-900 border-b border-gray-100 pb-2 mb-2 mt-4">Asset Details</h4>
                 <div className="bg-white rounded-xl">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">

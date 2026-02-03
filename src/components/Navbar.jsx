@@ -1,4 +1,3 @@
-
 const Navbar = ({ onAddClick }) => {
   return (
     <nav className="bg-blue-600 shadow-lg mb-8">
@@ -8,10 +7,9 @@ const Navbar = ({ onAddClick }) => {
             N
           </div>
           <h1 className="text-white text-xl font-bold tracking-wider">
-            NetInventory
+            NETRA
           </h1>
         </div>
-        {/* Saat diklik, panggil fungsi onAddClick */}
         <button 
           onClick={onAddClick}
           className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition shadow-lg border border-blue-500"

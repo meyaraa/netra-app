@@ -1,7 +1,10 @@
 const Footer = () => {
   return (
-    <footer className="bg-gray-800 text-gray-400 py-6 mt-12 text-center text-sm">
-      <p>&copy; 2026 Network Inventory Manager. Tugas Pemrograman Front-End.</p>
+    <footer className=" mt-10 py-6 text-center text-sm text-gray-500">
+      <p className="font-medium">
+        &copy; 2026 <span className="text-[#240046] font-bold">NETRA</span> Network Inventory.
+      </p>
+      <p className="text-xs mt-1 text-gray-400">Mayang Putri Mutiara</p>
     </footer>
   );
 };
